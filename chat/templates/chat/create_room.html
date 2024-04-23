@@ -1,12 +1,23 @@
 <!-- chat/templates/chat/create_room.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Создать новую комнату</title>
+</head>
+<body>
 
-<h2>Создать новую комнату</h2>
+    <form method="post">
+        <!-- Здесь будет форма для создания комнаты -->
+        {% csrf_token %}
+        <!-- Здесь поля формы, например: -->
+        <label for="name">Название комнаты:</label>
+        <input type="text" id="name" name="name">
+        <label for="description">Описание комнаты:</label>
+        <input type="text" id="description" name="description">
+        <button type="submit">Создать</button>
+    </form>
 
-<form method="post">
-    <!-- Здесь будет форма для создания комнаты -->
-    {% csrf_token %}
-    <!-- Здесь поля формы, например: -->
-    <label for="room_name">Название комнаты:</label>
-    <input type="text" id="room_name" name="room_name">
-    <button type="submit">Создать</button>
-</form>
+</body>
+</html>
