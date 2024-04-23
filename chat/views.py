@@ -1,15 +1,16 @@
 # chat/views.py
-from django.shortcuts import render, get_object_or_404
-from .models import ChatRoom
-from django.shortcuts import render
-from .models import ChatRoom
-from django.shortcuts import render, redirect
-from .models import ChatRoom
+from django.shortcuts import render, get_object_or_404, redirect
 from .forms import CreateRoomForm
+from .models import ChatRoom, Message
+from django.http import JsonResponse
+import json
+
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
 
-def room_detail(request, room_name):
-    room = get_object_or_404(ChatRoom, name=room_name)
+def room_detail(request, room_id):  # Измените параметр на room_id
+    room = get_object_or_404(ChatRoom, id=room_id)  # Используйте room_id для получения комнаты
     return render(request, 'chat/room_detail.html', {'room': room})
 
 def chat_list(request):
@@ -29,3 +30,37 @@ def create_room(request):
     else:
         form = CreateRoomForm()
     return render(request, 'chat/create_room.html', {'form': form})
+
+
+def send_message(request, room_id):
+    if request.method == 'POST':
+        content = request.POST.get('content')
+        sender = request.user
+        room = ChatRoom.objects.get(id=room_id)
+        message = Message.objects.create(room=room, sender=sender, content=content)
+        
+        # Отправить сообщение через WebSocket
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f"chat_{room_id}",
+            {
+                "type": "chat.message",
+                "message": {
+                    "sender": sender.username,
+                    "content": content,
+                    "timestamp": message.timestamp.isoformat(),
+                },
+            },
+        )
+        
+        return JsonResponse({'success': True})
+    return JsonResponse({'success': False})
+
+
+
+def get_messages(request, room_id):
+    if request.method == 'GET':
+        room = ChatRoom.objects.get(id=room_id)
+        messages = room.messages.all()
+        data = [{'sender': msg.sender.username, 'content': msg.content, 'timestamp': msg.timestamp} for msg in messages]
+        return JsonResponse({'messages': data})

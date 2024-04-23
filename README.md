@@ -1,3 +1,11 @@
+## Запуск
+python manage.py makemigrations
+python manage.py migrate
+
+daphne chat_project.asgi:application
+daphne -p 8001 chat_project.asgi:application
+
+
 cd chat_project
 python manage.py runserver
 

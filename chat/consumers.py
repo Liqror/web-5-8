@@ -1,33 +1,33 @@
 # chat/consumers.py
 import json
-from channels.generic.websocket import AsyncWebsocketConsumer
+from .firebase_utils import initialize_firebase, send_message_to_firebase, get_messages_from_firebase
 
-class ChatConsumer(AsyncWebsocketConsumer):
+# Инициализация Firebase
+initialize_firebase()
+
+class ChatConsumer:
     async def connect(self):
-        self.room_name = self.scope['url_route']['kwargs']['room_name']
-        self.room_group_name = 'chat_%s' % self.room_name
+        # Получаем room_id из URL
+        self.room_id = self.scope['url_route']['kwargs']['room_id']
+        # Формируем имя группы комнаты
+        self.room_group_name = f'chat_{self.room_id}'
 
-        # Join room group
-        await self.channel_layer.group_add(
-            self.room_group_name,
-            self.channel_name
-        )
-
+        # Принимаем WebSocket-соединение
         await self.accept()
 
     async def disconnect(self, close_code):
-        # Leave room group
-        await self.channel_layer.group_discard(
-            self.room_group_name,
-            self.channel_name
-        )
+        # Покидаем группу комнаты при отключении
+        pass
 
-    # Receive message from WebSocket
     async def receive(self, text_data):
+        # Десериализуем JSON-данные
         text_data_json = json.loads(text_data)
         message = text_data_json['message']
 
-        # Send message to room group
+        # Отправляем сообщение в Firebase Realtime Database
+        send_message_to_firebase(self.room_id, message)
+
+        # Отправляем сообщение в группу комнаты
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -36,11 +36,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
             }
         )
 
-    # Receive message from room group
+    # Получаем сообщение из группы комнаты
     async def chat_message(self, event):
         message = event['message']
 
-        # Send message to WebSocket
+        # Отправляем сообщение по WebSocket
         await self.send(text_data=json.dumps({
             'message': message
         }))

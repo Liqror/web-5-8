@@ -1,0 +1,84 @@
+<!-- chat/templates/chat/room_detail.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Room: {{ room.name }}</title>
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-analytics.js";
+        // TODO: Add SDKs for Firebase products that you want to use
+        // https://firebase.google.com/docs/web/setup#available-libraries
+      
+        // Your web app's Firebase configuration
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+        const firebaseConfig = {
+          apiKey: "AIzaSyCULB8i72nAIAqIP6sFS3HS4bK2gi48ckE",
+          authDomain: "chat-project-8f016.firebaseapp.com",
+          projectId: "chat-project-8f016",
+          storageBucket: "chat-project-8f016.appspot.com",
+          messagingSenderId: "664654209679",
+          appId: "1:664654209679:web:bcb0a44c9a423ac13b06fa",
+          measurementId: "G-MB4Z6G4G8Y"
+        };
+      
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+      </script>
+      
+</head>
+<body>
+    <h1>Chat Room: {{ room.name }}</h1>
+    
+    <!-- Отображение сообщений -->
+    <div id="messages">
+        {% for message in room.messages.all %}
+            <p>{{ message.sender }}: {{ message.text }}</p>
+        {% endfor %}
+    </div>
+    
+    <!-- Форма для отправки нового сообщения -->
+    <form id="message-form">
+        {% csrf_token %}
+        <input type="text" id="message-input" placeholder="Введите ваше сообщение">
+        <button type="submit">Отправить</button>
+    </form>
+    
+    <!-- JavaScript для обработки отправки сообщения через WebSocket -->
+    <script>
+        const room_id = "{{ room.id }}"; // Используйте room.id для получения идентификатора комнаты
+        const chatSocket = new WebSocket(
+            'ws://'
+            + '127.0.0.1:8001'
+            + '/ws/chat/'
+            + room_id
+            + '/'
+        );
+
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            // Обработка полученного сообщения, например, добавление его в список сообщений на странице
+            const messagesDiv = document.querySelector('#messages');
+            const messageSender = data.sender;
+            const messageContent = data.content;
+            const messageTimestamp = data.timestamp;
+            messagesDiv.innerHTML += `<p>${messageSender}: ${messageContent}</p>`;
+        };
+
+        document.querySelector('#message-form').onsubmit = function(e) {
+            e.preventDefault();
+            const messageInputDom = document.querySelector('#message-input');
+            const message = messageInputDom.value;
+            chatSocket.send(JSON.stringify({
+                'message': message
+            }));
+            messageInputDom.value = '';
+        };
+
+    </script>
+</body>
+</html>
